@@ -1,0 +1,55 @@
+{
+  "observed_date": "2026-09-13",
+  "flow_url": "http://localhost:7860/flow/d22537f8-64b3-4a58-862a-3efa220f7518",
+  "review_id": "26ec68ea-3b6b-48ed-8fee-63d8e9d3b14c",
+  "revision": 2,
+  "digest": "6a35b08ea78c029a51441b3103475617ec8088903b1e6bf831eaef5ca386af9e",
+  "status": "draft_ready",
+  "canonical_sha256": "60e005b299997ab0dac122f8665e58f7d089ff9563b8f8555488e067a46df33c",
+  "ui_duration_seconds": 6.3,
+  "extractor_ui_seconds": 2.5,
+  "gap_agent_ui_seconds": 2.8,
+  "issues": [],
+  "prd_generated": true,
+  "stories_generated": true,
+  "github_commit_generated": false,
+  "source_transport": "embedded_versioned_snapshot",
+  "drive_upload": {
+    "status": "9 uploads complete verified in UI",
+    "folder_url": "https://drive.google.com/drive/u/0/folders/121xKPik0_bfY8N6y43BNlNKRpWqD09jV",
+    "server_credential_configured": false
+  },
+  "fine_tuning": {
+    "train_examples": 48,
+    "validation_examples": 16,
+    "holdout_examples": 16,
+    "training_job_status": "NOT_STARTED"
+  },
+  "note": "Same deterministic renderer and approved source, using exact live review ID, revision, digest, answer and approval timestamps read from Langflow UI. This receipt is not a full review database export.",
+  "approval": {
+    "reviewer": "Raghavendra Kaushik",
+    "at": "2026-09-13T05:23:30.689109+00:00",
+    "revision": 2,
+    "digest": "6a35b08ea78c029a51441b3103475617ec8088903b1e6bf831eaef5ca386af9e",
+    "statement": "I reviewed the extracted requirements and approve this exact revision."
+  },
+  "generation_metrics": [
+    {
+      "stage": "prd",
+      "provider": "Groq",
+      "model": "openai/gpt-oss-120b",
+      "latency_ms": 1418,
+      "input_tokens": 374,
+      "output_tokens": 321
+    },
+    {
+      "stage": "stories",
+      "provider": "Groq",
+      "model": "openai/gpt-oss-120b",
+      "latency_ms": 1205,
+      "input_tokens": 597,
+      "output_tokens": 292
+    }
+  ],
+  "github_automatic_status": "access_required"
+}

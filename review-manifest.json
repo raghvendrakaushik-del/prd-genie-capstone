@@ -1,0 +1,17 @@
+{
+  "product_id": "relayops-pilot-v1",
+  "product_version": "1.0",
+  "review_id": "26ec68ea-3b6b-48ed-8fee-63d8e9d3b14c",
+  "review_revision": 2,
+  "review_digest": "6a35b08ea78c029a51441b3103475617ec8088903b1e6bf831eaef5ca386af9e",
+  "approval": {
+    "reviewer": "Raghavendra Kaushik",
+    "at": "2026-09-13T05:23:30.689109+00:00",
+    "revision": 2,
+    "digest": "6a35b08ea78c029a51441b3103475617ec8088903b1e6bf831eaef5ca386af9e",
+    "statement": "I reviewed the extracted requirements and approve this exact revision."
+  },
+  "author": "Raghavendra Kaushik",
+  "source_transport": "embedded_versioned_snapshot",
+  "status": "Draft generated from approved source requirements; final document sign-off is separate."
+}

@@ -1,0 +1,202 @@
+[
+  {
+    "local_id": "ST-FR-001",
+    "epic_id": "EP-01",
+    "issue_type": "Story",
+    "summary": "Filter delivery history",
+    "description": "As a Integration Operator, I want to filter deliveries by status, endpoint, event type and date range, so that I can locate relevant failed deliveries without searching engineering logs.\n\nDESCRIPTION\nProvide an account-scoped delivery list. Combine supplied filters with AND. Use UTC ISO 8601 date bounds, inclusive start and exclusive end. Limit the selected interval and record age to the previous 30 days. Paginate 50 records per page, ordered by timestamp descending and delivery ID descending as the tie-breaker. An empty result displays a clear zero-results message.\n\nAPI CONTRACT\nGET /v2/deliveries?status=&endpoint_id=&event_type=&from=&to=&cursor=. Returns HTTP 200 with items and next_cursor; invalid filters return 400. Tenant context comes from the authenticated identity, never a caller-supplied account selector.\n\nACCEPTANCE CRITERIA\nAC-001\nGIVEN an authenticated operator in account-pilot-a and delivery records across two accounts\nWHEN the operator filters status=failed, endpoint=ep-12, event_type=invoice.paid and a valid UTC date range\nTHEN only account-pilot-a records matching every filter are returned in the specified order, with at most 50 records per page\n\nAC-002\nGIVEN an authenticated operator and a date range longer than 30 days or with start greater than or equal to end\nWHEN the operator requests delivery history\nTHEN the API returns HTTP 400 with code INVALID_DATE_RANGE and the UI explains the allowed range without returning delivery records\n\nAPPLICABLE NON-FUNCTIONAL REQUIREMENTS\nNFR-001: p95 < 800 ms with 500 concurrent operators and 100,000 delivery records per account. Verification: Run a 30-minute steady-state load test after five-minute warmup, using realistic filter combinations; report p50, p95, p99, errors and sample count.\nNFR-003: All pilot acceptance scenarios pass in both specified desktop browser versions. Mobile support is explicitly excluded. Verification: Cross-browser regression suite on the pinned synthetic acceptance environment. These versions are fictional project test targets, not a current-browser recommendation.\n\nSOURCE AND REVIEW\nRequirement: FR-001; source priority: Must Have; review 26ec68ea-3b6b-48ed-8fee-63d8e9d3b14c revision 2; approved by Raghavendra Kaushik.",
+    "requirement_ids": [
+      "FR-001"
+    ],
+    "priority": "Must Have",
+    "acceptance_criteria": [
+      {
+        "id": "AC-001",
+        "given": "an authenticated operator in account-pilot-a and delivery records across two accounts",
+        "when": "the operator filters status=failed, endpoint=ep-12, event_type=invoice.paid and a valid UTC date range",
+        "then": "only account-pilot-a records matching every filter are returned in the specified order, with at most 50 records per page"
+      },
+      {
+        "id": "AC-002",
+        "given": "an authenticated operator and a date range longer than 30 days or with start greater than or equal to end",
+        "when": "the operator requests delivery history",
+        "then": "the API returns HTTP 400 with code INVALID_DATE_RANGE and the UI explains the allowed range without returning delivery records"
+      }
+    ]
+  },
+  {
+    "local_id": "ST-FR-002",
+    "epic_id": "EP-01",
+    "issue_type": "Story",
+    "summary": "Inspect delivery evidence",
+    "description": "As a Integration Operator, I want to open the details of a selected delivery, so that I can determine why delivery failed before deciding whether to replay it.\n\nDESCRIPTION\nDisplay delivery ID, endpoint ID, event type, UTC timestamp, HTTP status code or the literal network_timeout for a timeout, attempt count and last failure reason. Do not expose raw payload bodies, signing secrets or authorization headers. Show replay eligibility and the supported reason when ineligible.\n\nAPI CONTRACT\nGET /v2/deliveries/{delivery_id}. Returns HTTP 200 for an accessible record, otherwise 404. Existing identity checks precede data lookup.\n\nACCEPTANCE CRITERIA\nAC-003\nGIVEN an operator with access to a failed delivery in the same account\nWHEN the operator opens its detail view\nTHEN all seven specified evidence fields and replay eligibility are displayed, without raw payloads or secret headers\n\nAC-004\nGIVEN an operator requesting a delivery ID that does not exist in the authenticated account\nWHEN the operator opens the detail view\nTHEN the API returns HTTP 404 with code DELIVERY_NOT_FOUND and reveals no other account metadata\n\nAPPLICABLE NON-FUNCTIONAL REQUIREMENTS\nNFR-003: All pilot acceptance scenarios pass in both specified desktop browser versions. Mobile support is explicitly excluded. Verification: Cross-browser regression suite on the pinned synthetic acceptance environment. These versions are fictional project test targets, not a current-browser recommendation.\nNFR-004: Zero forbidden secret values in the security test corpus; all five route families enforce account isolation. Verification: TLS configuration check, secret-canary scanning and negative authorization tests before launch.\n\nSOURCE AND REVIEW\nRequirement: FR-002; source priority: Must Have; review 26ec68ea-3b6b-48ed-8fee-63d8e9d3b14c revision 2; approved by Raghavendra Kaushik.",
+    "requirement_ids": [
+      "FR-002"
+    ],
+    "priority": "Must Have",
+    "acceptance_criteria": [
+      {
+        "id": "AC-003",
+        "given": "an operator with access to a failed delivery in the same account",
+        "when": "the operator opens its detail view",
+        "then": "all seven specified evidence fields and replay eligibility are displayed, without raw payloads or secret headers"
+      },
+      {
+        "id": "AC-004",
+        "given": "an operator requesting a delivery ID that does not exist in the authenticated account",
+        "when": "the operator opens the detail view",
+        "then": "the API returns HTTP 404 with code DELIVERY_NOT_FOUND and reveals no other account metadata"
+      }
+    ]
+  },
+  {
+    "local_id": "ST-FR-003",
+    "epic_id": "EP-02",
+    "issue_type": "Story",
+    "summary": "Request a single eligible replay",
+    "description": "As a Integration Operator, I want to replay one eligible failed delivery after confirming the action, so that I can recover a missed webhook without asking an engineer to run a script.\n\nDESCRIPTION\nRequire current replay permission and an explicit confirmation displaying delivery ID and endpoint. Accept only network timeouts or HTTP 5xx failures from the previous 30 days. Reject successful, 4xx, too-old or already-running deliveries. Reuse the immutable original payload and signing configuration. A durable acceptance transaction creates an outbox entry and replay_job_id before dispatch.\n\nAPI CONTRACT\nPOST /v2/deliveries/{delivery_id}/replays with required Idempotency-Key and body {\"reason\":\"operator_recovery\"}. Responses: 202 accepted; 400 missing key; 401 unauthenticated; 403 missing replay permission; 404 inaccessible delivery; 409 key/body conflict; 422 ineligible; 503 failed durable acceptance.\n\nACCEPTANCE CRITERIA\nAC-005\nGIVEN a permitted operator, an eligible same-account HTTP 5xx failure, and a fresh Idempotency-Key\nWHEN the operator confirms and sends a replay request\nTHEN the API returns HTTP 202 with replay_job_id and queued status, and one durable replay job is accepted\n\nAC-006\nGIVEN a permitted operator and an HTTP 4xx, successful, older-than-30-days or already-running delivery\nWHEN the operator requests replay\nTHEN the API returns HTTP 422 with code DELIVERY_NOT_ELIGIBLE and enqueues no replay job\n\nAPPLICABLE NON-FUNCTIONAL REQUIREMENTS\nNFR-002: 90-day retention; 100% required audit-field completeness for accepted replay jobs. Verification: Retention-boundary test, append-only permission check and daily job-to-audit reconciliation.\nNFR-004: Zero forbidden secret values in the security test corpus; all five route families enforce account isolation. Verification: TLS configuration check, secret-canary scanning and negative authorization tests before launch.\n\nSOURCE AND REVIEW\nRequirement: FR-003; source priority: Must Have; review 26ec68ea-3b6b-48ed-8fee-63d8e9d3b14c revision 2; approved by Raghavendra Kaushik.",
+    "requirement_ids": [
+      "FR-003"
+    ],
+    "priority": "Must Have",
+    "acceptance_criteria": [
+      {
+        "id": "AC-005",
+        "given": "a permitted operator, an eligible same-account HTTP 5xx failure, and a fresh Idempotency-Key",
+        "when": "the operator confirms and sends a replay request",
+        "then": "the API returns HTTP 202 with replay_job_id and queued status, and one durable replay job is accepted"
+      },
+      {
+        "id": "AC-006",
+        "given": "a permitted operator and an HTTP 4xx, successful, older-than-30-days or already-running delivery",
+        "when": "the operator requests replay",
+        "then": "the API returns HTTP 422 with code DELIVERY_NOT_ELIGIBLE and enqueues no replay job"
+      }
+    ]
+  },
+  {
+    "local_id": "ST-FR-004",
+    "epic_id": "EP-02",
+    "issue_type": "Story",
+    "summary": "Deduplicate replay requests",
+    "description": "As a Integration Operator, I want to safely retry an interrupted replay request, so that I do not create duplicate replay jobs when my client retries.\n\nDESCRIPTION\nDeduplicate atomically by authenticated account ID, delivery ID and Idempotency-Key for 24 hours from first acceptance. A duplicate identical request returns the original job ID and current status without enqueueing another job. A duplicate key with a different body returns a conflict. Simultaneous duplicate requests are subject to the same atomic guarantee.\n\nAPI CONTRACT\nThe replay POST endpoint owns deduplication. The deduplication key includes tenant and delivery identifiers. Keys are not shared across accounts. Expired keys require a fresh eligibility check before any new replay.\n\nACCEPTANCE CRITERIA\nAC-007\nGIVEN an accepted replay and its Idempotency-Key within the 24-hour window\nWHEN the same account retries the identical request concurrently or sequentially\nTHEN every accepted response references the original replay_job_id and exactly one job has been enqueued\n\nAC-008\nGIVEN an accepted replay key within its 24-hour window\nWHEN the same account and delivery reuse the key with a different request body\nTHEN the API returns HTTP 409 with code IDEMPOTENCY_CONFLICT and no second job is created\n\nSOURCE AND REVIEW\nRequirement: FR-004; source priority: Must Have; review 26ec68ea-3b6b-48ed-8fee-63d8e9d3b14c revision 2; approved by Raghavendra Kaushik.",
+    "requirement_ids": [
+      "FR-004"
+    ],
+    "priority": "Must Have",
+    "acceptance_criteria": [
+      {
+        "id": "AC-007",
+        "given": "an accepted replay and its Idempotency-Key within the 24-hour window",
+        "when": "the same account retries the identical request concurrently or sequentially",
+        "then": "every accepted response references the original replay_job_id and exactly one job has been enqueued"
+      },
+      {
+        "id": "AC-008",
+        "given": "an accepted replay key within its 24-hour window",
+        "when": "the same account and delivery reuse the key with a different request body",
+        "then": "the API returns HTTP 409 with code IDEMPOTENCY_CONFLICT and no second job is created"
+      }
+    ]
+  },
+  {
+    "local_id": "ST-FR-005",
+    "epic_id": "EP-02",
+    "issue_type": "Story",
+    "summary": "Observe replay status",
+    "description": "As a Integration Operator, I want to see the current and final state of my replay job, so that I know whether the webhook recovery succeeded.\n\nDESCRIPTION\nShow queued, running, succeeded or failed plus the last status-update timestamp. Poll every 15 seconds while queued/running and the browser tab is visible. Stop on terminal state or hidden tab; refresh immediately when visible again. A manual refresh control is always available. On a transient polling error, keep the last known state, label it stale and retry on the next normal poll; never claim success from missing data.\n\nAPI CONTRACT\nGET /v2/replay-jobs/{replay_job_id}. HTTP 200 includes replay_job_id, status, updated_at and sanitized failure_code for failed jobs. Cross-account or absent jobs return 404. State transitions are queued -> running -> succeeded|failed.\n\nACCEPTANCE CRITERIA\nAC-009\nGIVEN a visible browser tab showing a queued or running replay\nWHEN 15 seconds elapse\nTHEN the UI requests current status and updates only from a successful response; polling stops when succeeded or failed is returned\n\nAC-010\nGIVEN a queued replay view that becomes hidden or experiences a failed status request\nWHEN the tab is hidden and later visible, or the status request fails\nTHEN background polling stops while hidden; visibility restoration triggers immediate refresh; a failed request preserves the last known state and displays a stale-state warning\n\nAPPLICABLE NON-FUNCTIONAL REQUIREMENTS\nNFR-003: All pilot acceptance scenarios pass in both specified desktop browser versions. Mobile support is explicitly excluded. Verification: Cross-browser regression suite on the pinned synthetic acceptance environment. These versions are fictional project test targets, not a current-browser recommendation.\n\nSOURCE AND REVIEW\nRequirement: FR-005; source priority: Must Have; review 26ec68ea-3b6b-48ed-8fee-63d8e9d3b14c revision 2; approved by Raghavendra Kaushik.",
+    "requirement_ids": [
+      "FR-005"
+    ],
+    "priority": "Must Have",
+    "acceptance_criteria": [
+      {
+        "id": "AC-009",
+        "given": "a visible browser tab showing a queued or running replay",
+        "when": "15 seconds elapse",
+        "then": "the UI requests current status and updates only from a successful response; polling stops when succeeded or failed is returned"
+      },
+      {
+        "id": "AC-010",
+        "given": "a queued replay view that becomes hidden or experiences a failed status request",
+        "when": "the tab is hidden and later visible, or the status request fails",
+        "then": "background polling stops while hidden; visibility restoration triggers immediate refresh; a failed request preserves the last known state and displays a stale-state warning"
+      }
+    ]
+  },
+  {
+    "local_id": "ST-FR-006",
+    "epic_id": "EP-03",
+    "issue_type": "Story",
+    "summary": "Manage replay permissions",
+    "description": "As a Account Admin, I want to grant or revoke an operator's replay permission within my account, so that I can control who may initiate a potentially consequential replay.\n\nDESCRIPTION\nThe permission screen lists operators in the authenticated admin account and the current replay permission. Require confirmation for grant and revoke. Re-evaluate permission on every replay POST; a revocation must take effect within 60 seconds. A permission change produces an audit event containing admin actor, target operator, account, action and UTC timestamp.\n\nAPI CONTRACT\nPUT /v2/operators/{operator_id}/replay-permission with {\"enabled\":true|false}. HTTP 200 after durable update and audit; 403 for non-admins; 404 for a target outside the account.\n\nACCEPTANCE CRITERIA\nAC-011\nGIVEN an Account Admin and an operator in the same account\nWHEN the admin confirms a grant or revoke\nTHEN the permission record changes, an audit event is written, and the new permission is enforced on replay requests within 60 seconds\n\nAC-012\nGIVEN an Integration Operator or Auditor without the Account Admin role\nWHEN the user calls the permission-management endpoint\nTHEN the API returns HTTP 403 with code ADMIN_ROLE_REQUIRED and makes no permission change\n\nAPPLICABLE NON-FUNCTIONAL REQUIREMENTS\nNFR-002: 90-day retention; 100% required audit-field completeness for accepted replay jobs. Verification: Retention-boundary test, append-only permission check and daily job-to-audit reconciliation.\nNFR-003: All pilot acceptance scenarios pass in both specified desktop browser versions. Mobile support is explicitly excluded. Verification: Cross-browser regression suite on the pinned synthetic acceptance environment. These versions are fictional project test targets, not a current-browser recommendation.\n\nSOURCE AND REVIEW\nRequirement: FR-006; source priority: Must Have; review 26ec68ea-3b6b-48ed-8fee-63d8e9d3b14c revision 2; approved by Raghavendra Kaushik.",
+    "requirement_ids": [
+      "FR-006"
+    ],
+    "priority": "Must Have",
+    "acceptance_criteria": [
+      {
+        "id": "AC-011",
+        "given": "an Account Admin and an operator in the same account",
+        "when": "the admin confirms a grant or revoke",
+        "then": "the permission record changes, an audit event is written, and the new permission is enforced on replay requests within 60 seconds"
+      },
+      {
+        "id": "AC-012",
+        "given": "an Integration Operator or Auditor without the Account Admin role",
+        "when": "the user calls the permission-management endpoint",
+        "then": "the API returns HTTP 403 with code ADMIN_ROLE_REQUIRED and makes no permission change"
+      }
+    ]
+  },
+  {
+    "local_id": "ST-FR-007",
+    "epic_id": "EP-03",
+    "issue_type": "Story",
+    "summary": "Inspect immutable audit history",
+    "description": "As a Auditor, I want to inspect account-scoped delivery and replay audit history, so that I can reconstruct who initiated a replay and its outcome.\n\nDESCRIPTION\nProvide a read-only audit view filterable by UTC date range, actor ID and delivery ID. Every accepted replay records actor ID, account ID, original delivery ID, replay_job_id, UTC request timestamp and current/final outcome. Terminal updates append events rather than overwriting history. Audit retention is 90 days even though replay eligibility and delivery search are 30 days. Permission-change events are also visible. No export feature is included.\n\nAPI CONTRACT\nGET /v2/audit-events?from=&to=&actor_id=&delivery_id=&cursor=. Returns append-only events for up to 90 days. The public pilot API exposes no audit update or delete operation.\n\nACCEPTANCE CRITERIA\nAC-013\nGIVEN an Auditor in an account with accepted replay jobs and terminal outcomes\nWHEN the auditor filters the audit view\nTHEN only that account's audit events appear and every replay is traceable through all six required audit fields\n\nAC-014\nGIVEN an authenticated Auditor\nWHEN the auditor attempts replay, permission modification or audit modification\nTHEN each prohibited operation is rejected with HTTP 403 and no write or replay is performed\n\nAPPLICABLE NON-FUNCTIONAL REQUIREMENTS\nNFR-002: 90-day retention; 100% required audit-field completeness for accepted replay jobs. Verification: Retention-boundary test, append-only permission check and daily job-to-audit reconciliation.\nNFR-003: All pilot acceptance scenarios pass in both specified desktop browser versions. Mobile support is explicitly excluded. Verification: Cross-browser regression suite on the pinned synthetic acceptance environment. These versions are fictional project test targets, not a current-browser recommendation.\n\nSOURCE AND REVIEW\nRequirement: FR-007; source priority: Must Have; review 26ec68ea-3b6b-48ed-8fee-63d8e9d3b14c revision 2; approved by Raghavendra Kaushik.",
+    "requirement_ids": [
+      "FR-007"
+    ],
+    "priority": "Must Have",
+    "acceptance_criteria": [
+      {
+        "id": "AC-013",
+        "given": "an Auditor in an account with accepted replay jobs and terminal outcomes",
+        "when": "the auditor filters the audit view",
+        "then": "only that account's audit events appear and every replay is traceable through all six required audit fields"
+      },
+      {
+        "id": "AC-014",
+        "given": "an authenticated Auditor",
+        "when": "the auditor attempts replay, permission modification or audit modification",
+        "then": "each prohibited operation is rejected with HTTP 403 and no write or replay is performed"
+      }
+    ]
+  },
+  {
+    "local_id": "ST-FR-008",
+    "epic_id": "EP-03",
+    "issue_type": "Story",
+    "summary": "Enforce account isolation",
+    "description": "As a Account Admin, I want to have account boundaries enforced on every delivery, replay, permission and audit operation, so that my account's records remain inaccessible to another account.\n\nDESCRIPTION\nDerive account scope exclusively from the authenticated identity. Apply scope checks in both service authorization and data queries. Never trust an account ID from the request body or query string. Use non-disclosing 404 responses for inaccessible record IDs and 403 for prohibited actions on accessible records. Audit internal authorization failures without logging payload secrets.\n\nAPI CONTRACT\nAll /v2 console routes use authenticated account scope. API authorization is mandatory even when the corresponding UI action is hidden.\n\nACCEPTANCE CRITERIA\nAC-015\nGIVEN a valid user session from account-pilot-a and a delivery or replay job belonging only to account-pilot-b\nWHEN the user requests that identifier or supplies a forged account selector\nTHEN the API returns HTTP 404 or rejects the unsupported selector and returns no account-pilot-b data\n\nAC-016\nGIVEN a cross-account test matrix covering delivery list, detail, replay, permission management and audit history\nWHEN the isolation suite executes with all three pilot account identities\nTHEN zero cross-account reads or writes succeed and no replay job is enqueued by a cross-account request\n\nAPPLICABLE NON-FUNCTIONAL REQUIREMENTS\nNFR-004: Zero forbidden secret values in the security test corpus; all five route families enforce account isolation. Verification: TLS configuration check, secret-canary scanning and negative authorization tests before launch.\n\nSOURCE AND REVIEW\nRequirement: FR-008; source priority: Must Have; review 26ec68ea-3b6b-48ed-8fee-63d8e9d3b14c revision 2; approved by Raghavendra Kaushik.",
+    "requirement_ids": [
+      "FR-008"
+    ],
+    "priority": "Must Have",
+    "acceptance_criteria": [
+      {
+        "id": "AC-015",
+        "given": "a valid user session from account-pilot-a and a delivery or replay job belonging only to account-pilot-b",
+        "when": "the user requests that identifier or supplies a forged account selector",
+        "then": "the API returns HTTP 404 or rejects the unsupported selector and returns no account-pilot-b data"
+      },
+      {
+        "id": "AC-016",
+        "given": "a cross-account test matrix covering delivery list, detail, replay, permission management and audit history",
+        "when": "the isolation suite executes with all three pilot account identities",
+        "then": "zero cross-account reads or writes succeed and no replay job is enqueued by a cross-account request"
+      }
+    ]
+  }
+]
