@@ -21,8 +21,12 @@ Three Epics and eight Stories were created in project KAN. The standard Story wo
 | ST-FR-007 | [KAN-13](https://raghvendrakaushik.atlassian.net/browse/KAN-13) | KAN-6 |
 | ST-FR-008 | [KAN-14](https://raghvendrakaushik.atlassian.net/browse/KAN-14) | KAN-6 |
 
-## Video awaiting the author's recording
-The user requested narration in his own voice. He reported that his ElevenLabs free plan cannot save a cloned voice. The free route is a direct voice recording using 03_Demo/Raghavendra_Narration_Script.md. The five-minute final video is not yet complete. An internal generic-voice storyboard experiment is not represented as a live screen recording or an author-voice deliverable. Recording and audio upload are the current dependency.
+## Narrated demo completed
+PRD_Genie_Raghavendra_Kaushik_Demo.mp4 runs 9 minutes 4 seconds and uses Raghavendra's supplied recording. At his explicit request, only the Cost and evaluation section was removed (original 07:49.120–08:20.117). Retained AAC audio packets were copied byte-for-byte, with no voice replacement, re-encoding or speed changes. The source recording remains unchanged.
+
+The edited walkthrough uses actual Langflow canvas close-ups, saved Playground extraction/review/PRD outputs, native execution traces, the rendered Mermaid diagram, all three Jira epics, a detailed saved story, and GitHub/Drive handoff screens. All application screenshots were captured on September 14; Playground and trace outputs show the verified September 13 run. It is not a continuous new execution. Chapters and validation evidence accompany the MP4.
+
+The MP4 is delivered separately in the Drive folder. The documents ZIP includes its notes and validation, but excludes the video and original voice file. The longer runtime is the author's explicit preference. Final review remains with the author.
 
 ## Other status
-The four main PDF/PPTX documents were uploaded to Capstone_Raghav_SEP2026. This archive contains the detailed knowledge base, workflow exports, source kit, reviewed outputs, all twelve baseline records, screenshots and Jira publication receipt. There is no final video in this archive yet. Source fine-tuning and direct server-side Drive/GitHub connections remain uncompleted; browser publication does not configure those server connections. The private GitHub feature branch remains unmerged. Baseline: four automated passes and eight failures, including two execution errors. Human semantic baseline review is pending.
+The four main PDF/PPTX documents were uploaded to Capstone_Raghav_SEP2026. This archive contains the detailed knowledge base, workflow exports, source kit, reviewed outputs, all twelve baseline records, screenshots and Jira publication receipt. The completed MP4 is provided separately from this documents archive. Source fine-tuning and direct server-side Drive/GitHub connections remain uncompleted; browser publication does not configure those server connections. The private GitHub feature branch remains unmerged. Baseline: four automated passes and eight failures, including two execution errors. Human semantic baseline review is pending.

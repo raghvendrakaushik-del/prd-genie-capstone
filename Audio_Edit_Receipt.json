@@ -1,0 +1,16 @@
+{
+  "source_file": "C:\\Users\\Admin\\Downloads\\PRD Genie recording .m4a",
+  "source_sha256": "7df2e3a31cde0f061d74f37d06dbaa1ed379f38a402f768dc631b45b925c1e24",
+  "cut_start_seconds": 469.12,
+  "cut_end_seconds": 500.1173333333333,
+  "removed_seconds": 30.997333333333334,
+  "edited_duration_seconds": 544.149333,
+  "removed_section": "Cost and evaluation",
+  "authorization": "User requested only this section removed; remainder unchanged",
+  "retained_aac_packets": 25507,
+  "removed_aac_packets": 1453,
+  "retained_aac_sha256": "586802c678442a4e7114c20596d26d696b7429760238c6dc365fd19f5ab46986",
+  "retained_audio_packet_bytes_identical": true,
+  "audio_reencoded": false,
+  "speed_changed": false
+}

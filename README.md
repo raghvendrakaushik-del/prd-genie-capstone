@@ -13,11 +13,11 @@ PRD Genie turns source material into reviewed product requirements and traceable
 - [Complete documents archive](Capstone_Raghav_SEP2026_Documents.zip): source kit, workflow exports, twelve baseline inputs and outputs/errors, knowledge files, screenshots, review receipts and Jira artifacts.
 - [Google Drive submission folder](https://drive.google.com/drive/u/0/folders/1NOfn4t_hZHsP4QaP58lgV3a-CT4J3I_K).
 
-The September 13 report/deck describes Jira as import-ready; publication was completed September 14. [Current status](00_READ_FIRST_CURRENT_STATUS.md) records this change. The final demo video is awaiting Raghavendra's own narration recording; a transcript is not claimed as a completed video.
+The September 13 report/deck describes Jira as import-ready; publication was completed September 14. [Current status](00_READ_FIRST_CURRENT_STATUS.md) records this change. The completed **9:04 demo video**, in Raghavendra's recorded voice, is provided in the Drive folder. Only the requested Cost and evaluation section was removed; remaining audio packets were preserved without re-encoding or speed changes. See [demo chapters and notes](Demo_Chapters_and_Notes.md) and [video validation](Video_Validation.json). Actual application screenshots show the reviewed workflow, Playground outputs, Mermaid diagram and published Jira items; this is an edited walkthrough, not a continuous new execution.
 
 ## Reproduce the reviewed demonstration
 
-1. Start the existing local Langflow Docker instance at `http://localhost:7860`; keep its database on a persistent volume.
+1. Start the existing local Langflow Docker instance at `http://127.0.0.1:7860`; keep its database on a persistent volume.
 2. Import `prd-genie.v2-reviewed.langflow.json`. Bind model-enabled components to the existing `GROQ_API_KEY` secret variable. Never put credentials in chat or Git.
 3. Send `{"action":"extract","product_id":"relayops-pilot-v1"}` in the Playground.
 4. Read the extracted Markdown review packet. Resolve missing fields using the answer action displayed by that run, including the actual reviewer identity.
