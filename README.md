@@ -13,7 +13,7 @@ PRD Genie turns source material into reviewed product requirements and traceable
 - [Complete documents archive](Capstone_Raghav_SEP2026_Documents.zip): source kit, workflow exports, twelve baseline inputs and outputs/errors, knowledge files, screenshots, review receipts and Jira artifacts.
 - [Google Drive submission folder](https://drive.google.com/drive/u/0/folders/1NOfn4t_hZHsP4QaP58lgV3a-CT4J3I_K).
 
-The September 13 report/deck describes Jira as import-ready; publication was completed September 14. [Current status](00_READ_FIRST_CURRENT_STATUS.md) records this change. The completed **9:04 demo video**, in Raghavendra's recorded voice, is provided in the Drive folder. Only the requested Cost and evaluation section was removed; remaining audio packets were preserved without re-encoding or speed changes. See [demo chapters and notes](Demo_Chapters_and_Notes.md) and [video validation](Video_Validation.json). Actual application screenshots show the reviewed workflow, Playground outputs, Mermaid diagram and published Jira items; this is an edited walkthrough, not a continuous new execution.
+The September 13 report/deck describes Jira as import-ready; publication was completed September 14. [Current status](00_READ_FIRST_CURRENT_STATUS.md) records this change.  Actual application screenshots show the reviewed workflow, Playground outputs, Mermaid diagram and published Jira items; this is an edited walkthrough, not a continuous new execution.
 
 ## Reproduce the reviewed demonstration
 
