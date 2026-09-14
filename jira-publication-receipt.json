@@ -1,0 +1,82 @@
+{
+  "project": "KAN",
+  "site": "https://raghvendrakaushik.atlassian.net",
+  "epics": [
+    {
+      "source_id": "EP-01",
+      "key": "KAN-4"
+    },
+    {
+      "source_id": "EP-02",
+      "key": "KAN-5"
+    },
+    {
+      "source_id": "EP-03",
+      "key": "KAN-6"
+    }
+  ],
+  "stories": [
+    {
+      "source_id": "ST-FR-001",
+      "key": "KAN-7",
+      "parent": "KAN-4",
+      "saved_description_verified": true,
+      "saved_parent_verified": true
+    },
+    {
+      "source_id": "ST-FR-002",
+      "key": "KAN-8",
+      "parent": "KAN-4",
+      "saved_description_verified": true,
+      "saved_parent_verified": true
+    },
+    {
+      "source_id": "ST-FR-003",
+      "key": "KAN-9",
+      "parent": "KAN-5",
+      "saved_description_verified": true,
+      "saved_parent_verified": true
+    },
+    {
+      "source_id": "ST-FR-004",
+      "key": "KAN-10",
+      "parent": "KAN-5",
+      "saved_description_verified": true,
+      "saved_parent_verified": true
+    },
+    {
+      "source_id": "ST-FR-005",
+      "key": "KAN-11",
+      "parent": "KAN-5",
+      "criteria_verified_before_create": true,
+      "saved_description_verified": true,
+      "saved_parent_verified": true
+    },
+    {
+      "source_id": "ST-FR-006",
+      "key": "KAN-12",
+      "parent": "KAN-6",
+      "criteria_verified_before_create": true,
+      "saved_description_verified": true,
+      "saved_parent_verified": true
+    },
+    {
+      "source_id": "ST-FR-007",
+      "key": "KAN-13",
+      "parent": "KAN-6",
+      "criteria_verified_before_create": true,
+      "saved_description_verified": true,
+      "saved_parent_verified": true
+    },
+    {
+      "source_id": "ST-FR-008",
+      "key": "KAN-14",
+      "parent": "KAN-6",
+      "criteria_verified_before_create": true,
+      "saved_description_verified": true,
+      "saved_parent_verified": true
+    }
+  ],
+  "verified_at": "2026-09-14T12:55:07.030Z",
+  "status": "3 epics and 8 stories created; all saved story descriptions and parent links verified"
+}
