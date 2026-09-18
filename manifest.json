@@ -1,0 +1,57 @@
+{
+  "product_id": "relayops-pilot-v1",
+  "version": "1.0",
+  "synthetic": true,
+  "files": [
+    {
+      "name": "01-relayops-source-of-truth.json",
+      "sha256": "8b07e7e6b0e5a69a82f24f929df46217cce9e3f6dda073a8f19dfe85d1530a45",
+      "bytes": 32945,
+      "role": "canonical"
+    },
+    {
+      "name": "02-product-brief.md",
+      "sha256": "e1f1ab4f6700573484b5f396eea52df0b0c62863b2851bbab70a37998b34d9de",
+      "bytes": 4296,
+      "role": "supporting_source"
+    },
+    {
+      "name": "03-api-and-acceptance-catalog.md",
+      "sha256": "5a5b2f6a5f428daa0e0c417f2829295d2237620839ed998ff669174f3c966b31",
+      "bytes": 9655,
+      "role": "supporting_source"
+    },
+    {
+      "name": "04-nfr-security-and-operations.md",
+      "sha256": "dd53b83b10d6f4f4877e495c77b7b21003af6e7c3193383c76d25dc2c7535a3b",
+      "bytes": 3762,
+      "role": "supporting_source"
+    },
+    {
+      "name": "05-decision-workshop-transcript.md",
+      "sha256": "6931b0e324ae9d83321cb77fdfade63373fd53ea786cc6a7fd4b1dff32983813",
+      "bytes": 3173,
+      "role": "supporting_source"
+    },
+    {
+      "name": "06-stakeholder-notes-and-resolution-register.md",
+      "sha256": "862679a1d33743d96a945cec662f96c41821d1bddea7b872a80eb512efa2b378",
+      "bytes": 4345,
+      "role": "supporting_source"
+    },
+    {
+      "name": "07-prd-template.md",
+      "sha256": "9072e326ec008bf99de15033cdd3fab6450db8d18628ca8d2c3005fc532f3375",
+      "bytes": 1522,
+      "role": "template"
+    },
+    {
+      "name": "08-prior-prd-style-reference.md",
+      "sha256": "0dcfb37aee6fa80eede01dc2ad8c68a82e6a5094f526a6b6258f14b6f455e42f",
+      "bytes": 1597,
+      "role": "style_only"
+    }
+  ],
+  "drive_status": "NOT_UPLOADED",
+  "retrieval_policy": "Pin the current product source catalog for completeness. Rank same-product narrative chunks plus template/style context. Never use prior-product facts as current-product evidence."
+}

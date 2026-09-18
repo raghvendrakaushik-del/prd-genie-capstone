@@ -1,0 +1,28 @@
+flowchart TD
+    OP["Integration Operator / Account Admin / Auditor"]
+    UI["Desktop Console: filters, detail, replay, audit"]
+    AUTH["Existing Customer-Account Identity Service"]
+    API["Delivery API v2: authorization and tenant scope"]
+    DB["Account-scoped Delivery Store: 30-day search"]
+    DEDUP["Atomic 24-hour Idempotency + Outbox"]
+    WORKER["Core Events Replay Worker"]
+    ENDPOINT["Existing Customer Webhook Endpoint"]
+    JOB["Replay Job Store: queued / running / succeeded / failed"]
+    AUDIT["Append-only Audit Store: 90 days"]
+    KPI["Daily Pilot KPI Reconciliation"]
+    OP -->|"Use role-appropriate controls [FR-001, FR-006, FR-007]"| UI
+    UI -->|"Authenticate and obtain account identity [FR-008]"| AUTH
+    UI -->|"HTTPS /v2 requests with authenticated identity [FR-001, FR-008, NFR-004]"| API
+    API -->|"Check current replay/admin permission [FR-003, FR-006]"| AUTH
+    API -->|"Tenant-scoped list and detail queries [FR-001, FR-002, FR-008]"| DB
+    API -->|"Eligibility + atomic accept or 409 conflict [FR-003, FR-004]"| DEDUP
+    DEDUP -->|"Persist replay_job_id and queued status [FR-003]"| JOB
+    DEDUP -->|"Durable acceptance audit/outbox transaction [FR-003, FR-007]"| AUDIT
+    DEDUP -->|"Dispatch accepted job once [FR-004]"| WORKER
+    WORKER -->|"Original payload and existing signing configuration [FR-003, DEC-02]"| ENDPOINT
+    WORKER -->|"Append state transition and sanitized result [FR-005]"| JOB
+    WORKER -->|"Append final outcome [FR-007]"| AUDIT
+    UI -->|"Visible active-job poll every 15 seconds [FR-005, DEC-03]"| API
+    API -->|"Read account-scoped job status [FR-005, FR-008]"| JOB
+    API -->|"Read-only 90-day audit query [FR-007, NFR-002]"| AUDIT
+    AUDIT -->|"Daily completeness reconciliation [DEC-05, NFR-002]"| KPI

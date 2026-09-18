@@ -1,0 +1,690 @@
+{
+  "product_id": "relayops-pilot-v1",
+  "name": "RelayOps Webhook Delivery Console",
+  "version": "1.0",
+  "source_date": "2026-09-13",
+  "classification": "Fictional product scenario. Product-team characters, accounts, budgets and measurements are synthetic; the document author and actual reviewer are user-supplied identities.",
+  "metadata": {
+    "author": "Raghavendra Kaushik",
+    "reviewer": "Raghavendra Kaushik",
+    "date": "2026-09-13",
+    "status": "In Review"
+  },
+  "overview": "A tenant-isolated desktop console that lets integration operators investigate failed webhook deliveries and replay eligible events without an engineering-owned script. A three-account pilot covers investigation, permission management, replay orchestration and audit history; the existing identity service and Delivery API v2 remain the systems of record.",
+  "problem": "Support currently collects an event identifier, asks an engineer to inspect logs, waits for an engineering script to replay the event, and asks again for the result. This creates repeated handoffs, weak operator visibility and inconsistent replay audit records.",
+  "business_goal": "Reduce the median elapsed time from a failed-delivery support report to a confirmed replay result from a synthetic baseline of 45 minutes to at most 15 minutes during the four-week pilot.",
+  "user_goal": "Enable authorized Integration Operators to find failures, inspect evidence, start one eligible replay and see its final outcome without requesting script access.",
+  "metrics": [
+    {
+      "name": "Median resolution time",
+      "baseline": "45 minutes across 20 fictional historical tickets",
+      "target": "At most 15 minutes",
+      "window": "Four-week pilot, 2026-10-12 through 2026-11-08",
+      "measurement": "Median of support_reported_at to replay_terminal_at for eligible resolved pilot tickets; report unresolved-ticket count separately to avoid survivor bias.",
+      "owner": "Noor Ali, Product Analytics"
+    },
+    {
+      "name": "Self-service completion rate",
+      "baseline": "0% in the fictional manual process",
+      "target": "At least 80% of eligible replay incidents completed without an engineer running a script",
+      "window": "Same four-week pilot",
+      "measurement": "Eligible completed incidents with operator-started replay divided by all eligible completed incidents; exclude ineligible 4xx failures and publish the exclusion count.",
+      "owner": "Noor Ali, Product Analytics"
+    },
+    {
+      "name": "Audit completeness",
+      "baseline": "60% of 20 fictional historical tickets have a traceable actor and outcome",
+      "target": "100% of accepted replay jobs have all required audit fields and a terminal or current state",
+      "window": "Daily checks throughout pilot",
+      "measurement": "Reconcile accepted replay_job_id values against append-only audit events; any missing identifier or actor fails release readiness.",
+      "owner": "Isha Shah, Security Engineering"
+    }
+  ],
+  "personas": [
+    {
+      "role": "Integration Operator",
+      "need": "Investigate and replay eligible failed deliveries in the operator's own account.",
+      "workaround": "Open a support ticket and ask engineering to run an internal replay script.",
+      "permissions": "Read delivery records; replay only when an Account Admin has explicitly granted replay permission."
+    },
+    {
+      "role": "Account Admin",
+      "need": "Control which operators may initiate replay within the admin's account.",
+      "workaround": "Ask the identity team to change role assignments manually.",
+      "permissions": "Grant or revoke operator replay permission; no cross-account administration."
+    },
+    {
+      "role": "Auditor",
+      "need": "Inspect delivery history and replay audit evidence within the auditor's account.",
+      "workaround": "Request CSV extracts from engineering and correlate ticket IDs manually.",
+      "permissions": "Read delivery and audit history only; cannot replay or change permissions."
+    }
+  ],
+  "epics": [
+    {
+      "id": "EP-01",
+      "title": "Investigate webhook delivery failures",
+      "outcome": "Operators can locate and inspect relevant delivery evidence."
+    },
+    {
+      "id": "EP-02",
+      "title": "Replay safely and observe outcomes",
+      "outcome": "Authorized operators can replay eligible failures once and see a durable result."
+    },
+    {
+      "id": "EP-03",
+      "title": "Control and audit account access",
+      "outcome": "Admins govern replay access and auditors can inspect immutable account-scoped evidence."
+    }
+  ],
+  "out_of_scope": [
+    "Bulk replay and scheduled replay",
+    "Creating or editing webhook endpoints",
+    "New webhook signing algorithms",
+    "Mobile and native applications",
+    "AI-generated failure explanations",
+    "Customer-facing CSV or spreadsheet export in the pilot"
+  ],
+  "assumptions": [
+    {
+      "statement": "The three fictional pilot accounts use the existing customer-account identity service and have no external SSO migration during this pilot.",
+      "owner": "Omar Khan, Identity Team",
+      "validation": "Verified in the synthetic pilot-readiness inventory on 2026-09-11."
+    },
+    {
+      "statement": "A replay reuses the original immutable event payload and existing signing configuration; it does not create or edit an event.",
+      "owner": "Leo Chen, Core Events",
+      "validation": "Recorded as decision DEC-02 and included in replay contract review."
+    },
+    {
+      "statement": "The synthetic workload of 100,000 delivery records per account and 500 concurrent operators is sufficient for pilot capacity testing.",
+      "owner": "Aditi Rao, Engineering Lead",
+      "validation": "Explicit pilot sizing decision; expansion beyond this envelope requires a new capacity review."
+    }
+  ],
+  "dependencies": [
+    {
+      "name": "Delivery API v2",
+      "owner": "Leo Chen, Core Events",
+      "status": "Existing API; pilot contract additions due 2026-09-25",
+      "risk": "Delayed status-query support prevents end-to-end replay observation.",
+      "mitigation": "Contract tests at integration start; feature flag remains off if readiness fails."
+    },
+    {
+      "name": "Replay-worker API",
+      "owner": "Leo Chen, Core Events",
+      "status": "Synthetic commitment: staging available 2026-09-25",
+      "risk": "Worker readiness is a critical-path dependency.",
+      "mitigation": "Daily contract smoke test from 2026-09-25; launch requires successful enqueue-to-terminal test."
+    },
+    {
+      "name": "Customer-account identity service",
+      "owner": "Omar Khan, Identity Team",
+      "status": "Existing service; replay-permission endpoint contract signed 2026-09-11",
+      "risk": "Stale role propagation could retain revoked access.",
+      "mitigation": "Every replay authorization checks current permission; revocations take effect within 60 seconds."
+    },
+    {
+      "name": "Append-only audit store",
+      "owner": "Isha Shah, Security Engineering",
+      "status": "Existing storage; retention policy configured by 2026-09-28",
+      "risk": "Audit write failure could create an untraceable replay.",
+      "mitigation": "Atomic outbox transaction records acceptance before dispatch; do not accept replay if transaction fails."
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DEC-01",
+      "question": "Which delivery failures are eligible?",
+      "resolution": "Only network timeouts and HTTP 5xx failures from the previous 30 days are eligible. HTTP 4xx, successful and already-running deliveries are not eligible.",
+      "owner": "Maya Sen",
+      "date": "2026-09-11"
+    },
+    {
+      "id": "DEC-02",
+      "question": "What happens when a key is reused?",
+      "resolution": "Within 24 hours, the same account, delivery and Idempotency-Key with an identical body returns the original replay_job_id without another enqueue. Reusing the key with a different body returns HTTP 409.",
+      "owner": "Leo Chen",
+      "date": "2026-09-11"
+    },
+    {
+      "id": "DEC-03",
+      "question": "How often does job status refresh?",
+      "resolution": "The UI polls job status every 15 seconds only while the job is queued or running and the tab is visible. Polling stops on terminal status or hidden tab and refreshes immediately when the tab becomes visible. Manual refresh is available.",
+      "owner": "Aditi Rao",
+      "date": "2026-09-11"
+    },
+    {
+      "id": "DEC-04",
+      "question": "Is customer-facing export included?",
+      "resolution": "No customer-facing export in the pilot. Auditors use the account-scoped on-screen audit view.",
+      "owner": "Maya Sen",
+      "date": "2026-09-11"
+    },
+    {
+      "id": "DEC-05",
+      "question": "Who owns KPI reporting?",
+      "resolution": "Noor Ali owns daily dashboard reconciliation and the final four-week pilot report.",
+      "owner": "Maya Sen",
+      "date": "2026-09-11"
+    },
+    {
+      "id": "DEC-06",
+      "question": "Is the worker availability still unknown?",
+      "resolution": "The earlier discovery uncertainty is superseded by the synthetic Core Events commitment of staging availability on 2026-09-25. This is a sample scenario decision, not a real team commitment.",
+      "owner": "Leo Chen",
+      "date": "2026-09-11"
+    }
+  ],
+  "open_questions": {
+    "state": "resolved",
+    "statement": "All six product-scope questions raised in discovery were resolved in DEC-01 through DEC-06. Any new missing information or conflicting evidence reopens review and blocks PRD generation.",
+    "resolution_ids": [
+      "DEC-01",
+      "DEC-02",
+      "DEC-03",
+      "DEC-04",
+      "DEC-05",
+      "DEC-06"
+    ]
+  },
+  "timeline": [
+    {
+      "milestone": "Requirements and architecture review",
+      "date": "2026-09-18",
+      "owner": "Maya Sen and Aditi Rao",
+      "exit": "Reviewer approves source-backed requirements, API contracts and scope decisions."
+    },
+    {
+      "milestone": "Design Complete",
+      "date": "2026-09-21",
+      "owner": "Elena Park, Product Design",
+      "exit": "Desktop interaction and permission-error designs signed off."
+    },
+    {
+      "milestone": "Development Start",
+      "date": "2026-09-22",
+      "owner": "Aditi Rao",
+      "exit": "Sprint backlog accepted and mocked API contracts available."
+    },
+    {
+      "milestone": "Integration ready",
+      "date": "2026-09-28",
+      "owner": "Leo Chen",
+      "exit": "Identity, worker and audit integration contract tests pass."
+    },
+    {
+      "milestone": "QA / Testing",
+      "date": "2026-10-05",
+      "owner": "Ravi Menon, QA Lead",
+      "exit": "Functional, tenant-isolation, replay-deduplication, browser and capacity tests pass."
+    },
+    {
+      "milestone": "Launch",
+      "date": "2026-10-12",
+      "owner": "Maya Sen",
+      "exit": "Go/no-go approval; three account feature flags enabled; monitoring and rollback staffed."
+    },
+    {
+      "milestone": "Pilot review",
+      "date": "2026-11-09",
+      "owner": "Noor Ali",
+      "exit": "Four-week KPI report, incident review and rollout recommendation reviewed."
+    }
+  ],
+  "delivery": {
+    "budget": "Synthetic pilot engineering budget: USD 48,000, including a USD 3,000 infrastructure ceiling for the four-week pilot.",
+    "team": "One PM, one designer, two backend engineers, one frontend engineer and one QA engineer; security and identity owners provide part-time review.",
+    "rollout": "Enable the feature for exactly three fictional accounts, account-pilot-a, account-pilot-b and account-pilot-c, on 2026-10-12 after go/no-go approval.",
+    "rollback": "Disable replay controls using the per-account feature flag; continue read-only inspection and let already accepted jobs finish. Do not delete queued jobs or audit records.",
+    "support": "Core Events owns worker incidents; Identity owns authorization incidents; Security owns audit gaps. Maya coordinates the pilot incident review."
+  },
+  "requirements": [
+    {
+      "id": "FR-001",
+      "title": "Filter delivery history",
+      "epic_id": "EP-01",
+      "persona": "Integration Operator",
+      "want": "filter deliveries by status, endpoint, event type and date range",
+      "benefit": "I can locate relevant failed deliveries without searching engineering logs.",
+      "description": "Provide an account-scoped delivery list. Combine supplied filters with AND. Use UTC ISO 8601 date bounds, inclusive start and exclusive end. Limit the selected interval and record age to the previous 30 days. Paginate 50 records per page, ordered by timestamp descending and delivery ID descending as the tie-breaker. An empty result displays a clear zero-results message.",
+      "priority": "Must Have",
+      "acceptance_criteria": [
+        {
+          "id": "AC-001",
+          "given": "an authenticated operator in account-pilot-a and delivery records across two accounts",
+          "when": "the operator filters status=failed, endpoint=ep-12, event_type=invoice.paid and a valid UTC date range",
+          "then": "only account-pilot-a records matching every filter are returned in the specified order, with at most 50 records per page"
+        },
+        {
+          "id": "AC-002",
+          "given": "an authenticated operator and a date range longer than 30 days or with start greater than or equal to end",
+          "when": "the operator requests delivery history",
+          "then": "the API returns HTTP 400 with code INVALID_DATE_RANGE and the UI explains the allowed range without returning delivery records"
+        }
+      ],
+      "api_contract": "GET /v2/deliveries?status=&endpoint_id=&event_type=&from=&to=&cursor=. Returns HTTP 200 with items and next_cursor; invalid filters return 400. Tenant context comes from the authenticated identity, never a caller-supplied account selector."
+    },
+    {
+      "id": "FR-002",
+      "title": "Inspect delivery evidence",
+      "epic_id": "EP-01",
+      "persona": "Integration Operator",
+      "want": "open the details of a selected delivery",
+      "benefit": "I can determine why delivery failed before deciding whether to replay it.",
+      "description": "Display delivery ID, endpoint ID, event type, UTC timestamp, HTTP status code or the literal network_timeout for a timeout, attempt count and last failure reason. Do not expose raw payload bodies, signing secrets or authorization headers. Show replay eligibility and the supported reason when ineligible.",
+      "priority": "Must Have",
+      "acceptance_criteria": [
+        {
+          "id": "AC-003",
+          "given": "an operator with access to a failed delivery in the same account",
+          "when": "the operator opens its detail view",
+          "then": "all seven specified evidence fields and replay eligibility are displayed, without raw payloads or secret headers"
+        },
+        {
+          "id": "AC-004",
+          "given": "an operator requesting a delivery ID that does not exist in the authenticated account",
+          "when": "the operator opens the detail view",
+          "then": "the API returns HTTP 404 with code DELIVERY_NOT_FOUND and reveals no other account metadata"
+        }
+      ],
+      "api_contract": "GET /v2/deliveries/{delivery_id}. Returns HTTP 200 for an accessible record, otherwise 404. Existing identity checks precede data lookup."
+    },
+    {
+      "id": "FR-003",
+      "title": "Request a single eligible replay",
+      "epic_id": "EP-02",
+      "persona": "Integration Operator",
+      "want": "replay one eligible failed delivery after confirming the action",
+      "benefit": "I can recover a missed webhook without asking an engineer to run a script.",
+      "description": "Require current replay permission and an explicit confirmation displaying delivery ID and endpoint. Accept only network timeouts or HTTP 5xx failures from the previous 30 days. Reject successful, 4xx, too-old or already-running deliveries. Reuse the immutable original payload and signing configuration. A durable acceptance transaction creates an outbox entry and replay_job_id before dispatch.",
+      "priority": "Must Have",
+      "acceptance_criteria": [
+        {
+          "id": "AC-005",
+          "given": "a permitted operator, an eligible same-account HTTP 5xx failure, and a fresh Idempotency-Key",
+          "when": "the operator confirms and sends a replay request",
+          "then": "the API returns HTTP 202 with replay_job_id and queued status, and one durable replay job is accepted"
+        },
+        {
+          "id": "AC-006",
+          "given": "a permitted operator and an HTTP 4xx, successful, older-than-30-days or already-running delivery",
+          "when": "the operator requests replay",
+          "then": "the API returns HTTP 422 with code DELIVERY_NOT_ELIGIBLE and enqueues no replay job"
+        }
+      ],
+      "api_contract": "POST /v2/deliveries/{delivery_id}/replays with required Idempotency-Key and body {\"reason\":\"operator_recovery\"}. Responses: 202 accepted; 400 missing key; 401 unauthenticated; 403 missing replay permission; 404 inaccessible delivery; 409 key/body conflict; 422 ineligible; 503 failed durable acceptance."
+    },
+    {
+      "id": "FR-004",
+      "title": "Deduplicate replay requests",
+      "epic_id": "EP-02",
+      "persona": "Integration Operator",
+      "want": "safely retry an interrupted replay request",
+      "benefit": "I do not create duplicate replay jobs when my client retries.",
+      "description": "Deduplicate atomically by authenticated account ID, delivery ID and Idempotency-Key for 24 hours from first acceptance. A duplicate identical request returns the original job ID and current status without enqueueing another job. A duplicate key with a different body returns a conflict. Simultaneous duplicate requests are subject to the same atomic guarantee.",
+      "priority": "Must Have",
+      "acceptance_criteria": [
+        {
+          "id": "AC-007",
+          "given": "an accepted replay and its Idempotency-Key within the 24-hour window",
+          "when": "the same account retries the identical request concurrently or sequentially",
+          "then": "every accepted response references the original replay_job_id and exactly one job has been enqueued"
+        },
+        {
+          "id": "AC-008",
+          "given": "an accepted replay key within its 24-hour window",
+          "when": "the same account and delivery reuse the key with a different request body",
+          "then": "the API returns HTTP 409 with code IDEMPOTENCY_CONFLICT and no second job is created"
+        }
+      ],
+      "api_contract": "The replay POST endpoint owns deduplication. The deduplication key includes tenant and delivery identifiers. Keys are not shared across accounts. Expired keys require a fresh eligibility check before any new replay."
+    },
+    {
+      "id": "FR-005",
+      "title": "Observe replay status",
+      "epic_id": "EP-02",
+      "persona": "Integration Operator",
+      "want": "see the current and final state of my replay job",
+      "benefit": "I know whether the webhook recovery succeeded.",
+      "description": "Show queued, running, succeeded or failed plus the last status-update timestamp. Poll every 15 seconds while queued/running and the browser tab is visible. Stop on terminal state or hidden tab; refresh immediately when visible again. A manual refresh control is always available. On a transient polling error, keep the last known state, label it stale and retry on the next normal poll; never claim success from missing data.",
+      "priority": "Must Have",
+      "acceptance_criteria": [
+        {
+          "id": "AC-009",
+          "given": "a visible browser tab showing a queued or running replay",
+          "when": "15 seconds elapse",
+          "then": "the UI requests current status and updates only from a successful response; polling stops when succeeded or failed is returned"
+        },
+        {
+          "id": "AC-010",
+          "given": "a queued replay view that becomes hidden or experiences a failed status request",
+          "when": "the tab is hidden and later visible, or the status request fails",
+          "then": "background polling stops while hidden; visibility restoration triggers immediate refresh; a failed request preserves the last known state and displays a stale-state warning"
+        }
+      ],
+      "api_contract": "GET /v2/replay-jobs/{replay_job_id}. HTTP 200 includes replay_job_id, status, updated_at and sanitized failure_code for failed jobs. Cross-account or absent jobs return 404. State transitions are queued -> running -> succeeded|failed."
+    },
+    {
+      "id": "FR-006",
+      "title": "Manage replay permissions",
+      "epic_id": "EP-03",
+      "persona": "Account Admin",
+      "want": "grant or revoke an operator's replay permission within my account",
+      "benefit": "I can control who may initiate a potentially consequential replay.",
+      "description": "The permission screen lists operators in the authenticated admin account and the current replay permission. Require confirmation for grant and revoke. Re-evaluate permission on every replay POST; a revocation must take effect within 60 seconds. A permission change produces an audit event containing admin actor, target operator, account, action and UTC timestamp.",
+      "priority": "Must Have",
+      "acceptance_criteria": [
+        {
+          "id": "AC-011",
+          "given": "an Account Admin and an operator in the same account",
+          "when": "the admin confirms a grant or revoke",
+          "then": "the permission record changes, an audit event is written, and the new permission is enforced on replay requests within 60 seconds"
+        },
+        {
+          "id": "AC-012",
+          "given": "an Integration Operator or Auditor without the Account Admin role",
+          "when": "the user calls the permission-management endpoint",
+          "then": "the API returns HTTP 403 with code ADMIN_ROLE_REQUIRED and makes no permission change"
+        }
+      ],
+      "api_contract": "PUT /v2/operators/{operator_id}/replay-permission with {\"enabled\":true|false}. HTTP 200 after durable update and audit; 403 for non-admins; 404 for a target outside the account."
+    },
+    {
+      "id": "FR-007",
+      "title": "Inspect immutable audit history",
+      "epic_id": "EP-03",
+      "persona": "Auditor",
+      "want": "inspect account-scoped delivery and replay audit history",
+      "benefit": "I can reconstruct who initiated a replay and its outcome.",
+      "description": "Provide a read-only audit view filterable by UTC date range, actor ID and delivery ID. Every accepted replay records actor ID, account ID, original delivery ID, replay_job_id, UTC request timestamp and current/final outcome. Terminal updates append events rather than overwriting history. Audit retention is 90 days even though replay eligibility and delivery search are 30 days. Permission-change events are also visible. No export feature is included.",
+      "priority": "Must Have",
+      "acceptance_criteria": [
+        {
+          "id": "AC-013",
+          "given": "an Auditor in an account with accepted replay jobs and terminal outcomes",
+          "when": "the auditor filters the audit view",
+          "then": "only that account's audit events appear and every replay is traceable through all six required audit fields"
+        },
+        {
+          "id": "AC-014",
+          "given": "an authenticated Auditor",
+          "when": "the auditor attempts replay, permission modification or audit modification",
+          "then": "each prohibited operation is rejected with HTTP 403 and no write or replay is performed"
+        }
+      ],
+      "api_contract": "GET /v2/audit-events?from=&to=&actor_id=&delivery_id=&cursor=. Returns append-only events for up to 90 days. The public pilot API exposes no audit update or delete operation."
+    },
+    {
+      "id": "FR-008",
+      "title": "Enforce account isolation",
+      "epic_id": "EP-03",
+      "persona": "Account Admin",
+      "want": "have account boundaries enforced on every delivery, replay, permission and audit operation",
+      "benefit": "my account's records remain inaccessible to another account.",
+      "description": "Derive account scope exclusively from the authenticated identity. Apply scope checks in both service authorization and data queries. Never trust an account ID from the request body or query string. Use non-disclosing 404 responses for inaccessible record IDs and 403 for prohibited actions on accessible records. Audit internal authorization failures without logging payload secrets.",
+      "priority": "Must Have",
+      "acceptance_criteria": [
+        {
+          "id": "AC-015",
+          "given": "a valid user session from account-pilot-a and a delivery or replay job belonging only to account-pilot-b",
+          "when": "the user requests that identifier or supplies a forged account selector",
+          "then": "the API returns HTTP 404 or rejects the unsupported selector and returns no account-pilot-b data"
+        },
+        {
+          "id": "AC-016",
+          "given": "a cross-account test matrix covering delivery list, detail, replay, permission management and audit history",
+          "when": "the isolation suite executes with all three pilot account identities",
+          "then": "zero cross-account reads or writes succeed and no replay job is enqueued by a cross-account request"
+        }
+      ],
+      "api_contract": "All /v2 console routes use authenticated account scope. API authorization is mandatory even when the corresponding UI action is hidden."
+    }
+  ],
+  "nfrs": [
+    {
+      "id": "NFR-001",
+      "category": "Performance",
+      "requirement": "The delivery-list API must respond in less than 800 ms at p95 under the declared pilot workload.",
+      "target": "p95 < 800 ms with 500 concurrent operators and 100,000 delivery records per account.",
+      "verification": "Run a 30-minute steady-state load test after five-minute warmup, using realistic filter combinations; report p50, p95, p99, errors and sample count.",
+      "owner": "Ravi Menon",
+      "related_requirements": [
+        "FR-001"
+      ]
+    },
+    {
+      "id": "NFR-002",
+      "category": "Audit retention",
+      "requirement": "Accepted replay and permission audit events must remain queryable for 90 days and append-only throughout that interval.",
+      "target": "90-day retention; 100% required audit-field completeness for accepted replay jobs.",
+      "verification": "Retention-boundary test, append-only permission check and daily job-to-audit reconciliation.",
+      "owner": "Isha Shah",
+      "related_requirements": [
+        "FR-003",
+        "FR-006",
+        "FR-007"
+      ]
+    },
+    {
+      "id": "NFR-003",
+      "category": "Browser compatibility",
+      "requirement": "The pilot console must support desktop Chrome 140 and Edge 140 at viewport widths of 1280 pixels and above.",
+      "target": "All pilot acceptance scenarios pass in both specified desktop browser versions. Mobile support is explicitly excluded.",
+      "verification": "Cross-browser regression suite on the pinned synthetic acceptance environment. These versions are fictional project test targets, not a current-browser recommendation.",
+      "owner": "Ravi Menon",
+      "related_requirements": [
+        "FR-001",
+        "FR-002",
+        "FR-005",
+        "FR-006",
+        "FR-007"
+      ]
+    },
+    {
+      "id": "NFR-004",
+      "category": "Security and privacy",
+      "requirement": "Use TLS 1.2 or higher for console-to-API communication; redact raw payloads, signing secrets and authorization headers from UI and application logs.",
+      "target": "Zero forbidden secret values in the security test corpus; all five route families enforce account isolation.",
+      "verification": "TLS configuration check, secret-canary scanning and negative authorization tests before launch.",
+      "owner": "Isha Shah",
+      "related_requirements": [
+        "FR-002",
+        "FR-003",
+        "FR-008"
+      ]
+    }
+  ],
+  "architecture": {
+    "nodes": [
+      {
+        "id": "OP",
+        "label": "Integration Operator / Account Admin / Auditor"
+      },
+      {
+        "id": "UI",
+        "label": "Desktop Console: filters, detail, replay, audit"
+      },
+      {
+        "id": "AUTH",
+        "label": "Existing Customer-Account Identity Service"
+      },
+      {
+        "id": "API",
+        "label": "Delivery API v2: authorization and tenant scope"
+      },
+      {
+        "id": "DB",
+        "label": "Account-scoped Delivery Store: 30-day search"
+      },
+      {
+        "id": "DEDUP",
+        "label": "Atomic 24-hour Idempotency + Outbox"
+      },
+      {
+        "id": "WORKER",
+        "label": "Core Events Replay Worker"
+      },
+      {
+        "id": "ENDPOINT",
+        "label": "Existing Customer Webhook Endpoint"
+      },
+      {
+        "id": "JOB",
+        "label": "Replay Job Store: queued / running / succeeded / failed"
+      },
+      {
+        "id": "AUDIT",
+        "label": "Append-only Audit Store: 90 days"
+      },
+      {
+        "id": "KPI",
+        "label": "Daily Pilot KPI Reconciliation"
+      }
+    ],
+    "edges": [
+      {
+        "from": "OP",
+        "to": "UI",
+        "label": "Use role-appropriate controls",
+        "evidence": [
+          "FR-001",
+          "FR-006",
+          "FR-007"
+        ]
+      },
+      {
+        "from": "UI",
+        "to": "AUTH",
+        "label": "Authenticate and obtain account identity",
+        "evidence": [
+          "FR-008"
+        ]
+      },
+      {
+        "from": "UI",
+        "to": "API",
+        "label": "HTTPS /v2 requests with authenticated identity",
+        "evidence": [
+          "FR-001",
+          "FR-008",
+          "NFR-004"
+        ]
+      },
+      {
+        "from": "API",
+        "to": "AUTH",
+        "label": "Check current replay/admin permission",
+        "evidence": [
+          "FR-003",
+          "FR-006"
+        ]
+      },
+      {
+        "from": "API",
+        "to": "DB",
+        "label": "Tenant-scoped list and detail queries",
+        "evidence": [
+          "FR-001",
+          "FR-002",
+          "FR-008"
+        ]
+      },
+      {
+        "from": "API",
+        "to": "DEDUP",
+        "label": "Eligibility + atomic accept or 409 conflict",
+        "evidence": [
+          "FR-003",
+          "FR-004"
+        ]
+      },
+      {
+        "from": "DEDUP",
+        "to": "JOB",
+        "label": "Persist replay_job_id and queued status",
+        "evidence": [
+          "FR-003"
+        ]
+      },
+      {
+        "from": "DEDUP",
+        "to": "AUDIT",
+        "label": "Durable acceptance audit/outbox transaction",
+        "evidence": [
+          "FR-003",
+          "FR-007"
+        ]
+      },
+      {
+        "from": "DEDUP",
+        "to": "WORKER",
+        "label": "Dispatch accepted job once",
+        "evidence": [
+          "FR-004"
+        ]
+      },
+      {
+        "from": "WORKER",
+        "to": "ENDPOINT",
+        "label": "Original payload and existing signing configuration",
+        "evidence": [
+          "FR-003",
+          "DEC-02"
+        ]
+      },
+      {
+        "from": "WORKER",
+        "to": "JOB",
+        "label": "Append state transition and sanitized result",
+        "evidence": [
+          "FR-005"
+        ]
+      },
+      {
+        "from": "WORKER",
+        "to": "AUDIT",
+        "label": "Append final outcome",
+        "evidence": [
+          "FR-007"
+        ]
+      },
+      {
+        "from": "UI",
+        "to": "API",
+        "label": "Visible active-job poll every 15 seconds",
+        "evidence": [
+          "FR-005",
+          "DEC-03"
+        ]
+      },
+      {
+        "from": "API",
+        "to": "JOB",
+        "label": "Read account-scoped job status",
+        "evidence": [
+          "FR-005",
+          "FR-008"
+        ]
+      },
+      {
+        "from": "API",
+        "to": "AUDIT",
+        "label": "Read-only 90-day audit query",
+        "evidence": [
+          "FR-007",
+          "NFR-002"
+        ]
+      },
+      {
+        "from": "AUDIT",
+        "to": "KPI",
+        "label": "Daily completeness reconciliation",
+        "evidence": [
+          "DEC-05",
+          "NFR-002"
+        ]
+      }
+    ]
+  }
+}

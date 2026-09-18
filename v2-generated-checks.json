@@ -1,0 +1,21 @@
+{
+  "ten_template_sections": true,
+  "empty_fields_or_placeholders": false,
+  "functional_requirements": 8,
+  "nonfunctional_requirements": 4,
+  "acceptance_scenarios": 16,
+  "stories": 8,
+  "epics": 3,
+  "diagram_nodes": 11,
+  "diagram_edges": 16,
+  "materialization": "Same deterministic renderer and approved source, using exact live review ID, revision, digest, answer and approval timestamps read from Langflow UI. This receipt is not a full review database export.",
+  "files": {
+    "approved-source.json": "99f379b2d4118d14e84570665bbe87d52872ca01c85a104ee3ce1def80149576",
+    "architecture.mmd": "e45a5370308fb51539876a0570a1fe9eec84d2c0adc2d6fca10cd0051ff935a6",
+    "jira-import.csv": "482db94fe8d52676c4655ebbceaba3ff763ceb9060aed0c58475b1b13f547ad6",
+    "review-manifest.json": "81c2f5db3c7d9443d52a38075d50581da24aeef951f1736c1fdf2b89f9a9264b",
+    "stories.json": "ea6142e0c2f3eba1dd9693aeb631c7c48ed994f1af8e3253544f0be663e93772",
+    "stories.md": "357025b0de8c6ac0a4992cfeaf44cb717d05d7785bd182e234a4e5db4593a00f",
+    "wiki.md": "a09ce00003476e74deb0b102122b6098bd12255ae930fd5a082e3f76c7901644"
+  }
+}
